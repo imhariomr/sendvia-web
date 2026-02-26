@@ -37,7 +37,12 @@ export default function SharingPage() {
   const receivedAllBytesRef = useRef(0);
 
   useEffect(() => {
+
     if (!socket) return;
+    if (!socket.connected) {
+      // console.log("111111");
+      socket.connect();
+    }
 
     const handleSignal = ({ fromPeerId, data }: any) => {
 
@@ -361,8 +366,9 @@ export default function SharingPage() {
 
                 <input
                   value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
+                  onChange={(e) => setTargetId(e.target.value.toUpperCase())}
                   placeholder="Enter code to connect..."
+
                   className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-transparent px-4 py-3 outline-none focus:ring-2 focus:ring-slate-400"
                 />
 
