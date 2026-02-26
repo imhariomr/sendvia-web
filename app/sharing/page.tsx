@@ -374,7 +374,7 @@ export default function SharingPage() {
 
               <ShowTooltipInContent mainContent={connecting ? "Connecting..." : "Connect"} toolTipContent={!targetId ? 'Paste code to connect' : connecting ? 'Connecting...' : 'Tap to connect'}
                 className={'w-full rounded-xl py-3 text-center font-medium transition bg-slate-900 text-white dark:bg-white dark:text-black'}
-                useButton={false} disabled={connecting || !targetId} onClick={signaling} />
+                useButton={false} disabled={connecting || targetId.length < 8} onClick={signaling} />
               </div>)
             }
           </div>
