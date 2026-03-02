@@ -70,6 +70,7 @@ export default function SharingPage() {
   const connectedRef = useRef(false);
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendAbortRef = useRef(false);
+  const receiveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const receivedFilesRef = useRef<ReceivedFile[]>([]);
   const currentReceiveRef = useRef<{
@@ -145,6 +146,11 @@ export default function SharingPage() {
     }
     if (controlMsg?.type === "end" && currentReceiveRef.current) {
       const cur = currentReceiveRef.current;
+      if (controlMsg.index !== cur.meta.index || controlMsg.checksum !== cur.checksum) {
+        toast.error(`Corrupted transfer detected for ${cur.meta.name}. Please re-send.`);
+        currentReceiveRef.current = null;
+        return;
+      }
       let url: string | undefined;
       if (cur.writableStream) {
         try { await cur.writableStream.close(); url = (await finalizeOPFS(cur.meta.name)) ?? undefined; } catch { }
@@ -176,6 +182,15 @@ export default function SharingPage() {
       setReceiveProgress(Math.floor((receivedAllBytesRef.current / totalAllBytesRef.current) * 100));
     }
   }, [setUploadingFiles]);
+
+  const enqueueIncomingData = useCallback((rawData: unknown) => {
+    receiveQueueRef.current = receiveQueueRef.current
+      .then(() => handleIncomingData(rawData))
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to process incoming data.");
+      });
+  }, [handleIncomingData]);
 
   function iceConfig() {
     return {
@@ -212,7 +227,7 @@ export default function SharingPage() {
         peerRef.current = new Peer({ initiator: false, trickle: false, config: iceConfig() });
         peerRef.current.signal(data);
         peerRef.current.on("signal", (answer: any) => socket.emit("signal", { toPeerId: fromPeerId, data: answer }));
-        peerRef.current.on("data", handleIncomingData);
+        peerRef.current.on("data", enqueueIncomingData);
         peerRef.current.on("error", (e: any) => { console.error(e); toast.error("Connection error."); resetPeer(); });
         peerRef.current.on("close", () => { toast.error("Peer disconnected."); resetPeer(); });
       }
@@ -225,7 +240,7 @@ export default function SharingPage() {
       setConnected(true);
     });
     return () => { socket.off("signal", handleSignal); socket.off("connection-established"); };
-  }, [socket, handleIncomingData]);
+  }, [socket, enqueueIncomingData]);
 
   useEffect(() => { connectedRef.current = connected; }, [connected]);
 
