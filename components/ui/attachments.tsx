@@ -28,7 +28,7 @@ export default function Attachements({downloadAttachments,receiveProgress}:any) 
                             className="flex items-center gap-2 truncate bg-gray-50 dark:bg-slate-800 px-3 py-2 rounded-md"
                         >
                             <span>📄</span>
-                            <span className="truncate flex-1">{file.metaData}</span>
+                            <span className="truncate flex-1">{file.name ?? file.metaData ?? "Unnamed file"}</span>
                         </div>
                     ))}
                 </div>
