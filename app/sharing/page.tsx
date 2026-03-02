@@ -202,9 +202,20 @@ export default function SharingPage() {
     };
   }
 
+  function clearReceiveState() {
+    receivedFilesRef.current = [];
+    currentReceiveRef.current = null;
+    totalAllBytesRef.current = 0;
+    receivedAllBytesRef.current = 0;
+    setReceiveProgress(0);
+    setUploadingFiles([]);
+  }
+
   function resetPeer() {
     setConnected(false);
     setConnecting(false);
+    setIsConnectionEstablishedAtReceiver(false);
+    clearReceiveState();
     isInitiatorRef.current = false;
     if (peerRef.current) { try { peerRef.current.destroy(); } catch { } peerRef.current = null; }
   }
@@ -235,6 +246,7 @@ export default function SharingPage() {
 
     socket.on("signal", handleSignal);
     socket.on("connection-established", ({ fromPeerId }: any) => {
+      clearReceiveState();
       setIsConnectionEstablishedAtReceiver(true);
       setTargetId(fromPeerId);
       setConnected(true);
@@ -245,6 +257,7 @@ export default function SharingPage() {
   useEffect(() => { connectedRef.current = connected; }, [connected]);
 
   function signaling() {
+    clearReceiveState();
     setConnecting(true);
     isInitiatorRef.current = true;
     peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig() });
