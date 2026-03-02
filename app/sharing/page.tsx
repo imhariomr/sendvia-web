@@ -129,7 +129,7 @@ export default function SharingPage() {
           try { await cur.writableStream.close(); url = (await finalizeOPFS(cur.meta.name)) ?? undefined; } catch { }
         }
         if (!url) {
-          const blob = new Blob(cur.blobParts, { type: cur.meta.mimeType });
+          const blob = new Blob(cur.blobParts as BlobPart[], { type: cur.meta.mimeType });
           url = URL.createObjectURL(blob);
         }
         receivedFilesRef.current.push({ name: cur.meta.name, mimeType: cur.meta.mimeType, size: cur.meta.size, url });
