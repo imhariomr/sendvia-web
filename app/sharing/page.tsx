@@ -194,11 +194,12 @@ export default function SharingPage() {
   }, [connected]);
 
   async function sendFiles(files: File[]) {
+    console.log("files",files);
     setIsSharing(true);
     setProgress(0);
     const peer = peerRef.current;
     if (!peer?.connected) return;
-
+    console.log("peer",peer);
     const channel = peer._channel;
     const chunkSize = 16 * 1024;
     const MAX_BUFFER = 64 * 1024;
