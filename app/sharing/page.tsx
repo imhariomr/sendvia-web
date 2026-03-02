@@ -74,7 +74,7 @@ export default function SharingPage() {
   const receivedFilesRef = useRef<ReceivedFile[]>([]);
   const currentReceiveRef = useRef<{
     meta: FileMeta;
-    writableStream: WritableStreamDefaultWriter | null;
+    writableStream: FileSystemWritableFileStream | null;
     blobParts: Uint8Array[];
     receivedBytes: number;
     checksum: number;
@@ -82,13 +82,12 @@ export default function SharingPage() {
   const totalAllBytesRef = useRef(0);
   const receivedAllBytesRef = useRef(0);
 
-  async function openOPFSWriter(fileName: string): Promise<WritableStreamDefaultWriter | null> {
+  async function openOPFSWriter(fileName: string): Promise<FileSystemWritableFileStream | null> {
     try {
       if (!("storage" in navigator)) return null;
       const root = await (navigator.storage as any).getDirectory();
       const fh = await root.getFileHandle(fileName, { create: true });
-      const writable = await fh.createWritable();
-      return writable.getWriter();
+      return await fh.createWritable();
     } catch {
       return null;
     }
@@ -131,8 +130,17 @@ export default function SharingPage() {
       return;
     }
     if (controlMsg?.type === "meta") {
-      const writer = await openOPFSWriter(controlMsg.name);
-      currentReceiveRef.current = { meta: controlMsg, writableStream: writer, blobParts: [], receivedBytes: 0, checksum: 1 };
+      const receiveState = { meta: controlMsg, writableStream: null as FileSystemWritableFileStream | null, blobParts: [] as Uint8Array[], receivedBytes: 0, checksum: 1 };
+      currentReceiveRef.current = receiveState;
+      void openOPFSWriter(controlMsg.name).then((writer) => {
+        if (!writer) return;
+        const active = currentReceiveRef.current === receiveState;
+        if (active && receiveState.blobParts.length === 0) {
+          receiveState.writableStream = writer;
+          return;
+        }
+        void writer.close().catch(() => { });
+      });
       return;
     }
     if (controlMsg?.type === "end" && currentReceiveRef.current) {
@@ -157,7 +165,7 @@ export default function SharingPage() {
     if (!cur) return;
     cur.checksum = adler32(raw, cur.checksum);
     if (cur.writableStream) {
-      try { await cur.writableStream.write(raw); }
+      try { await cur.writableStream.write(raw as unknown as BufferSource); }
       catch { cur.writableStream = null; cur.blobParts.push(raw); }
     } else {
       cur.blobParts.push(raw);
