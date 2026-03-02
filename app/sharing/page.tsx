@@ -105,39 +105,53 @@ export default function SharingPage() {
     }
   }
 
-  const handleIncomingData = useCallback(async (raw: Uint8Array) => {
-    if (raw[0] === 0x7b) {
-      let msg: BatchMeta | FileMeta | EndMsg;
-      try { msg = JSON.parse(new TextDecoder().decode(raw)); } catch { return; }
+  const handleIncomingData = useCallback(async (rawData: unknown) => {
+    let raw: Uint8Array | null = null;
+    let controlMsg: BatchMeta | FileMeta | EndMsg | null = null;
 
-      if (msg.type === "batch-meta") {
-        totalAllBytesRef.current = msg.totalBytes;
-        receivedAllBytesRef.current = 0;
-        receivedFilesRef.current = [];
-        setReceiveProgress(0);
-        return;
+    if (typeof rawData === "string") {
+      try { controlMsg = JSON.parse(rawData); } catch { }
+    } else if (rawData instanceof Uint8Array) {
+      raw = rawData;
+      if (raw[0] === 0x7b) {
+        try { controlMsg = JSON.parse(new TextDecoder().decode(raw)); } catch { }
       }
-      if (msg.type === "meta") {
-        const writer = await openOPFSWriter(msg.name);
-        currentReceiveRef.current = { meta: msg, writableStream: writer, blobParts: [], receivedBytes: 0, checksum: 1 };
-        return;
+    } else if (rawData instanceof ArrayBuffer) {
+      raw = new Uint8Array(rawData);
+      if (raw[0] === 0x7b) {
+        try { controlMsg = JSON.parse(new TextDecoder().decode(raw)); } catch { }
       }
-      if (msg.type === "end" && currentReceiveRef.current) {
-        const cur = currentReceiveRef.current;
-        let url: string | undefined;
-        if (cur.writableStream) {
-          try { await cur.writableStream.close(); url = (await finalizeOPFS(cur.meta.name)) ?? undefined; } catch { }
-        }
-        if (!url) {
-          const blob = new Blob(cur.blobParts as BlobPart[], { type: cur.meta.mimeType });
-          url = URL.createObjectURL(blob);
-        }
-        receivedFilesRef.current.push({ name: cur.meta.name, mimeType: cur.meta.mimeType, size: cur.meta.size, url });
-        setUploadingFiles([...receivedFilesRef.current]);
-        currentReceiveRef.current = null;
-      }
+    }
+
+    if (controlMsg?.type === "batch-meta") {
+      totalAllBytesRef.current = controlMsg.totalBytes;
+      receivedAllBytesRef.current = 0;
+      receivedFilesRef.current = [];
+      setReceiveProgress(0);
       return;
     }
+    if (controlMsg?.type === "meta") {
+      const writer = await openOPFSWriter(controlMsg.name);
+      currentReceiveRef.current = { meta: controlMsg, writableStream: writer, blobParts: [], receivedBytes: 0, checksum: 1 };
+      return;
+    }
+    if (controlMsg?.type === "end" && currentReceiveRef.current) {
+      const cur = currentReceiveRef.current;
+      let url: string | undefined;
+      if (cur.writableStream) {
+        try { await cur.writableStream.close(); url = (await finalizeOPFS(cur.meta.name)) ?? undefined; } catch { }
+      }
+      if (!url) {
+        const blob = new Blob(cur.blobParts as BlobPart[], { type: cur.meta.mimeType });
+        url = URL.createObjectURL(blob);
+      }
+      receivedFilesRef.current.push({ name: cur.meta.name, mimeType: cur.meta.mimeType, size: cur.meta.size, url });
+      setUploadingFiles([...receivedFilesRef.current]);
+      currentReceiveRef.current = null;
+      return;
+    }
+
+    if (!raw) return;
 
     const cur = currentReceiveRef.current;
     if (!cur) return;
@@ -150,7 +164,9 @@ export default function SharingPage() {
     }
     cur.receivedBytes += raw.byteLength;
     receivedAllBytesRef.current += raw.byteLength;
-    setReceiveProgress(Math.floor((receivedAllBytesRef.current / totalAllBytesRef.current) * 100));
+    if (totalAllBytesRef.current > 0) {
+      setReceiveProgress(Math.floor((receivedAllBytesRef.current / totalAllBytesRef.current) * 100));
+    }
   }, [setUploadingFiles]);
 
   function iceConfig() {
