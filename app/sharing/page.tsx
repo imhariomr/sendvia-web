@@ -11,12 +11,10 @@ import Attachements from "@/components/ui/attachments"
 import { UseUploadingFiles } from "../context/uploading-file-context"
 import { toast } from "sonner"
 
-const CHUNK_SIZE = 256 * 1024;
-const MAX_BUFFER_BYTES = 4 * 1024 * 1024;
-const RESUME_BUFFER_BYTES = 1 * 1024 * 1024;
+const CHUNK_SIZE = 64 * 1024;
+const MAX_BUFFER_BYTES = 256 * 1024;
+const RESUME_BUFFER_BYTES = 64 * 1024;
 const CONNECT_TIMEOUT_MS = 20_000;
-const PROGRESS_UPDATE_INTERVAL_MS = 120;
-const PROGRESS_UPDATE_BYTES = 512 * 1024;
 
 interface FileMeta {
   type: "meta";
@@ -84,8 +82,6 @@ export default function SharingPage() {
   } | null>(null);
   const totalAllBytesRef = useRef(0);
   const receivedAllBytesRef = useRef(0);
-  const lastReceiveProgressRef = useRef({ bytes: 0, at: 0 });
-  const lastSendProgressRef = useRef({ bytes: 0, at: 0 });
 
   async function openOPFSWriter(fileName: string): Promise<FileSystemWritableFileStream | null> {
     try {
@@ -109,16 +105,6 @@ export default function SharingPage() {
     }
   }
 
-  function shouldUpdateProgress(last: { bytes: number; at: number }, currentBytes: number) {
-    const now = Date.now();
-    if (currentBytes - last.bytes >= PROGRESS_UPDATE_BYTES || now - last.at >= PROGRESS_UPDATE_INTERVAL_MS) {
-      last.bytes = currentBytes;
-      last.at = now;
-      return true;
-    }
-    return false;
-  }
-
   const handleIncomingData = useCallback(async (rawData: unknown) => {
     let raw: Uint8Array | null = null;
     let controlMsg: BatchMeta | FileMeta | EndMsg | null = null;
@@ -140,7 +126,6 @@ export default function SharingPage() {
     if (controlMsg?.type === "batch-meta") {
       totalAllBytesRef.current = controlMsg.totalBytes;
       receivedAllBytesRef.current = 0;
-      lastReceiveProgressRef.current = { bytes: 0, at: Date.now() };
       receivedFilesRef.current = [];
       setReceiveProgress(0);
       return;
@@ -193,7 +178,7 @@ export default function SharingPage() {
     }
     cur.receivedBytes += raw.byteLength;
     receivedAllBytesRef.current += raw.byteLength;
-    if (totalAllBytesRef.current > 0 && shouldUpdateProgress(lastReceiveProgressRef.current, receivedAllBytesRef.current)) {
+    if (totalAllBytesRef.current > 0) {
       setReceiveProgress(Math.floor((receivedAllBytesRef.current / totalAllBytesRef.current) * 100));
     }
   }, [setUploadingFiles]);
@@ -222,7 +207,6 @@ export default function SharingPage() {
     currentReceiveRef.current = null;
     totalAllBytesRef.current = 0;
     receivedAllBytesRef.current = 0;
-    lastReceiveProgressRef.current = { bytes: 0, at: 0 };
     setReceiveProgress(0);
     setUploadingFiles([]);
   }
@@ -303,7 +287,6 @@ export default function SharingPage() {
     try {
       const totalBytes = files.reduce((s, f) => s + f.size, 0);
       let sentBytes = 0;
-      lastSendProgressRef.current = { bytes: 0, at: Date.now() };
       peer.send(JSON.stringify({ type: "batch-meta", totalBytes, fileCount: files.length } satisfies BatchMeta));
 
       for (let idx = 0; idx < files.length; idx++) {
@@ -322,14 +305,12 @@ export default function SharingPage() {
           peer.send(u8);
           offset += u8.byteLength;
           sentBytes += u8.byteLength;
-          if (totalBytes > 0 && shouldUpdateProgress(lastSendProgressRef.current, sentBytes)) {
-            setProgress(Math.floor((sentBytes / totalBytes) * 100));
-          }
+          setProgress(Math.floor((sentBytes / totalBytes) * 100));
         }
         peer.send(JSON.stringify({ type: "end", index: idx, checksum } satisfies EndMsg));
       }
 
-      if (!sendAbortRef.current) { setProgress(100); toast.success("Files shared successfully 🫡"); setIsShared(true); }
+      if (!sendAbortRef.current) { toast.success("Files shared successfully 🫡"); setIsShared(true); }
     } catch (err) {
       console.error(err);
       toast.error("Transfer failed. Please try again.");
