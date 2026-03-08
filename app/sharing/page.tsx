@@ -239,10 +239,7 @@ export default function SharingPage() {
         return;
       }
       if (!peerRef.current) {
-        peerRef.current = new Peer({ initiator: false, trickle: false, config: iceConfig(),channelConfig: {
-    ordered: false,
-    maxRetransmits: 0
-  } });
+        peerRef.current = new Peer({ initiator: false, trickle: false, config: iceConfig() });
         peerRef.current.signal(data);
         peerRef.current.on("signal", (answer: any) => socket.emit("signal", { toPeerId: fromPeerId, data: answer }));
         peerRef.current.on("data", enqueueIncomingData);
@@ -267,10 +264,7 @@ export default function SharingPage() {
     clearReceiveState();
     setConnecting(true);
     isInitiatorRef.current = true;
-    peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig(),channelConfig: {
-    ordered: false,
-    maxRetransmits: 0
-  } });
+    peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig() });
     peerRef.current.on("signal", (offer: any) => socket.emit("signal", { toPeerId: targetId, data: offer }));
     peerRef.current.on("error", (e: any) => { console.error(e); toast.error("Connection failed."); resetPeer(); });
     peerRef.current.on("close", resetPeer);
