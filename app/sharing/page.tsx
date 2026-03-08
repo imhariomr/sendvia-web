@@ -199,6 +199,10 @@ export default function SharingPage() {
         { urls: "stun:stun1.l.google.com:19302" },
         { urls: process.env.NEXT_PUBLIC_TURN_SERVER || "", username: process.env.NEXT_PUBLIC_TURN_USERNAME, credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL },
       ],
+      channelConfig: {
+        ordered: false,
+        maxRetransmits: 0
+      }
     };
   }
 
