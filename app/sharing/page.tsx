@@ -11,7 +11,7 @@ import Attachements from "@/components/ui/attachments"
 import { UseUploadingFiles } from "../context/uploading-file-context"
 import { toast } from "sonner"
 
-const CHUNK_SIZE = 512 * 1024;       // 256KB
+const CHUNK_SIZE = 256 * 1024;       // 256KB
 const MAX_BUFFER_BYTES = 4 * 1024 * 1024; // 4MB
 const RESUME_BUFFER_BYTES = 1 * 1024 * 1024; // 1MB
 const CONNECT_TIMEOUT_MS = 20_000;
