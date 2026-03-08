@@ -11,9 +11,9 @@ import Attachements from "@/components/ui/attachments"
 import { UseUploadingFiles } from "../context/uploading-file-context"
 import { toast } from "sonner"
 
-const CHUNK_SIZE = 256 * 1024;       // 256KB
-const MAX_BUFFER_BYTES = 4 * 1024 * 1024; // 4MB
-const RESUME_BUFFER_BYTES = 1 * 1024 * 1024; // 1MB
+const CHUNK_SIZE = 1024 * 1024; 
+const MAX_BUFFER_BYTES = 32 * 1024 * 1024; // 32MB
+const RESUME_BUFFER_BYTES = 8 * 1024 * 1024; // 8MB
 const CONNECT_TIMEOUT_MS = 20_000;
 
 interface FileMeta {
@@ -171,7 +171,13 @@ export default function SharingPage() {
     if (!cur) return;
     cur.checksum = adler32(raw, cur.checksum);
     if (cur.writableStream) {
-      try { await cur.writableStream.write(raw as unknown as BufferSource); }
+      try { 
+        cur.blobParts.push(raw)
+        if (cur.blobParts.length > 20) {
+          await cur.writableStream.write(new Blob(cur.blobParts as any))
+          cur.blobParts = [];
+        }
+      }
       catch { cur.writableStream = null; cur.blobParts.push(raw); }
     } else {
       cur.blobParts.push(raw);
@@ -199,10 +205,6 @@ export default function SharingPage() {
         { urls: "stun:stun1.l.google.com:19302" },
         { urls: process.env.NEXT_PUBLIC_TURN_SERVER || "", username: process.env.NEXT_PUBLIC_TURN_USERNAME, credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL },
       ],
-      channelConfig: {
-        ordered: false,
-        maxRetransmits: 0
-      }
     };
   }
 
@@ -239,9 +241,13 @@ export default function SharingPage() {
         return;
       }
       if (!peerRef.current) {
-        peerRef.current = new Peer({ initiator: false, trickle: false, config: iceConfig() });
+        peerRef.current = new Peer({ initiator: false, trickle: false, config: iceConfig(),channelConfig: {ordered: false,maxRetransmits: 0} });
         peerRef.current.signal(data);
         peerRef.current.on("signal", (answer: any) => socket.emit("signal", { toPeerId: fromPeerId, data: answer }));
+        peerRef.current.on("connect", () => {
+          const channel: RTCDataChannel = peerRef.current._channel;
+          channel.bufferedAmountLowThreshold = RESUME_BUFFER_BYTES;
+        });
         peerRef.current.on("data", enqueueIncomingData);
         peerRef.current.on("error", (e: any) => { console.error(e); toast.error("Connection error."); resetPeer(); });
         peerRef.current.on("close", () => { toast.error("Peer disconnected."); resetPeer(); });
@@ -264,8 +270,12 @@ export default function SharingPage() {
     clearReceiveState();
     setConnecting(true);
     isInitiatorRef.current = true;
-    peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig() });
+    peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig(),channelConfig: {ordered: false,maxRetransmits: 0} });
     peerRef.current.on("signal", (offer: any) => socket.emit("signal", { toPeerId: targetId, data: offer }));
+    peerRef.current.on("connect", () => {
+      const channel: RTCDataChannel = peerRef.current._channel;
+      channel.bufferedAmountLowThreshold = RESUME_BUFFER_BYTES;
+    });
     peerRef.current.on("error", (e: any) => { console.error(e); toast.error("Connection failed."); resetPeer(); });
     peerRef.current.on("close", resetPeer);
     connectTimeoutRef.current = setTimeout(() => {
@@ -302,14 +312,28 @@ export default function SharingPage() {
         while (offset < file.size) {
           if (sendAbortRef.current) break;
           if (channel.bufferedAmount > MAX_BUFFER_BYTES) await waitForDrain();
-          const slice = file.slice(offset, offset + CHUNK_SIZE);  // ← only 64KB in RAM at once
-          const buf = await slice.arrayBuffer();
-          const u8 = new Uint8Array(buf);
-          checksum = adler32(u8, checksum);
-          peer.send(u8);
-          offset += u8.byteLength;
-          sentBytes += u8.byteLength;
-          setProgress(Math.floor((sentBytes / totalBytes) * 100));
+          // const slice = file.slice(offset, offset + CHUNK_SIZE);  
+          // const buf = await slice.arrayBuffer();
+          // const u8 = new Uint8Array(buf);
+          // checksum = adler32(u8, checksum);
+          // peer.send(u8);
+          // offset += u8.byteLength;
+          // sentBytes += u8.byteLength;
+          // setProgress(Math.floor((sentBytes / totalBytes) * 100));
+          const reader = file.stream().getReader();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const u8 = new Uint8Array(value);
+            checksum = adler32(u8, checksum);
+            peer.send(u8);
+            offset += u8.byteLength;
+            sentBytes += u8.byteLength;
+            if (sentBytes % (5 * 1024 * 1024) === 0) {
+              setProgress(Math.floor((sentBytes / totalBytes) * 100));
+            }
+          }
         }
         peer.send(JSON.stringify({ type: "end", index: idx, checksum } satisfies EndMsg));
       }
