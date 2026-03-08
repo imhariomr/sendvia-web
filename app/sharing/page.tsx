@@ -11,9 +11,9 @@ import Attachements from "@/components/ui/attachments"
 import { UseUploadingFiles } from "../context/uploading-file-context"
 import { toast } from "sonner"
 
-const CHUNK_SIZE = 64 * 1024;
-const MAX_BUFFER_BYTES = 256 * 1024;
-const RESUME_BUFFER_BYTES = 64 * 1024;
+const CHUNK_SIZE = 512 * 1024;
+const MAX_BUFFER_BYTES = 1024 * 1024;
+const RESUME_BUFFER_BYTES = 512 * 1024;
 const CONNECT_TIMEOUT_MS = 20_000;
 
 interface FileMeta {
