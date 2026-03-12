@@ -48,7 +48,7 @@ export function ShowTooltipInContent({mainContent,toolTipContent,className,useBu
   }
 
   const content = useButton
-    ? <Button variant="outline" onClick={!disabled ? onClick : undefined} disabled={disabled}>
+    ? <Button className={cssClass} variant="outline" onClick={!disabled ? onClick : undefined} disabled={disabled}>
     {label}
   </Button>
     : <div className={cssClass} onClick={!disabled ? onClick : undefined}>{label}</div>;

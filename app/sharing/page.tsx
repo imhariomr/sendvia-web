@@ -67,6 +67,7 @@ export default function SharingPage() {
 
   const peerRef = useRef<any>(null);
   const isInitiatorRef = useRef(false);
+  const manualDisconnectRef = useRef(false);
   const connectedRef = useRef(false);
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendAbortRef = useRef(false);
@@ -107,7 +108,7 @@ export default function SharingPage() {
 
   const handleIncomingData = useCallback(async (rawData: unknown) => {
     let raw: Uint8Array | null = null;
-    let controlMsg: BatchMeta | FileMeta | EndMsg | null = null;
+    let controlMsg: BatchMeta | FileMeta | EndMsg | null | any = null;
 
     if (typeof rawData === "string") {
       try { controlMsg = JSON.parse(rawData); } catch { }
@@ -243,8 +244,17 @@ export default function SharingPage() {
         peerRef.current.signal(data);
         peerRef.current.on("signal", (answer: any) => socket.emit("signal", { toPeerId: fromPeerId, data: answer }));
         peerRef.current.on("data", enqueueIncomingData);
-        peerRef.current.on("error", (e: any) => { console.error(e); toast.error("Connection error."); resetPeer(); });
-        peerRef.current.on("close", () => { toast.error("Peer disconnected."); resetPeer(); });
+        peerRef.current.on("close", () => {
+          if (manualDisconnectRef.current) {
+            toast.info("Device Disconnected");
+          }
+          manualDisconnectRef.current = false;
+          resetPeer();
+        });
+        peerRef.current.on("error", (err: any) => {
+          toast.info("Device Disconnected");
+          resetPeer();
+        });
       }
     };
 
@@ -266,8 +276,18 @@ export default function SharingPage() {
     isInitiatorRef.current = true;
     peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig() });
     peerRef.current.on("signal", (offer: any) => socket.emit("signal", { toPeerId: targetId, data: offer }));
-    peerRef.current.on("error", (e: any) => { console.error(e); toast.error("Connection failed."); resetPeer(); });
-    peerRef.current.on("close", resetPeer);
+    peerRef.current.on("close", () => {
+      if (manualDisconnectRef.current) {
+        toast.info("Device Disconnected");
+      }
+      manualDisconnectRef.current = false;
+      resetPeer();
+    });
+
+    peerRef.current.on("error", (err: any) => {
+      toast.info("Device Disconnected");
+      resetPeer();
+    });
     connectTimeoutRef.current = setTimeout(() => {
       if (!connectedRef.current) { toast.error("Connection timed out. Make sure the other device is online."); resetPeer(); }
     }, CONNECT_TIMEOUT_MS);
@@ -339,6 +359,24 @@ export default function SharingPage() {
     else setIsCopiedToClipboard(true);
   }
 
+  function disconnect() {
+    const peer = peerRef.current;
+    manualDisconnectRef.current = true;
+    if (!peer) {
+      resetPeer();
+      return;
+    }
+
+    try {
+      if (peer.connected) {
+        peer.send(JSON.stringify({ type: "disconnect" }));
+      }
+    } catch (e) {
+      console.error('e',e);
+    }
+    resetPeer();
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors text-slate-900 dark:text-white">
       <Navbar page="sharing" />
@@ -365,6 +403,10 @@ export default function SharingPage() {
                 <>
                   <p className="text-sm text-gray-500 mb-2 mt-4">Connected with device</p>
                   <div className="text-center py-6 bg-gray-100 dark:bg-slate-800 rounded-xl">{targetId}</div>
+
+                  <ShowTooltipInContent mainContent='Disconnect' toolTipContent='Tap To Disconnect'
+                    className={'w-full mt-5 rounded-xl py-3 text-center font-medium transition bg-slate-900 text-white dark:bg-white dark:text-black'}
+                    useButton={false} disabled={isSharing} onClick={disconnect} />
                 </>
               )}
             </div>
