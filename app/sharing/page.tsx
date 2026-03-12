@@ -406,7 +406,7 @@ export default function SharingPage() {
 
                   <ShowTooltipInContent mainContent='Disconnect' toolTipContent='Tap To Disconnect'
                     className={'w-full mt-5 rounded-xl py-3 text-center font-medium transition bg-slate-900 text-white dark:bg-white dark:text-black'}
-                    useButton={false} disabled={isSharing} onClick={disconnect} />
+                    useButton={false} onClick={disconnect} />
                 </>
               )}
             </div>
