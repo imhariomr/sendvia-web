@@ -18,7 +18,7 @@ export default function PrivacyPage() {
           </h1>
 
           <p className="text-gray-600 dark:text-gray-300">
-            Your privacy matters to us. Sharable is designed to transfer files
+            Your privacy matters to us. SendVia is designed to transfer files
             directly between devices without storing your data on any servers.
           </p>
 
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           </PolicyBlock>
 
           <PolicyBlock title="No Accounts Required">
-            You can use Sharable without creating an account. We do not collect
+            You can use SendVia without creating an account. We do not collect
             personal information like emails or passwords.
           </PolicyBlock>
 

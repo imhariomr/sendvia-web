@@ -22,14 +22,14 @@ export default function TermsPage() {
             </p>
 
             <p className="text-gray-600 dark:text-gray-300">
-              These Terms of Service govern your use of Sharable. By accessing or
+              These Terms of Service govern your use of SendVia. By accessing or
               using the service, you agree to comply with these terms.
             </p>
           </div>
 
 
           <TermBlock title="Acceptable Use">
-            You agree to use Sharable only for lawful purposes. You must not use
+            You agree to use SendVia only for lawful purposes. You must not use
             the service to distribute harmful, illegal, or unauthorized content.
           </TermBlock>
 
@@ -40,13 +40,13 @@ export default function TermsPage() {
           </TermBlock>
 
           <TermBlock title="No Data Storage">
-            Sharable transfers files directly between connected devices using
+            SendVia transfers files directly between connected devices using
             peer-to-peer technology. We do not store or retain your files on our
             servers.
           </TermBlock>
 
           <TermBlock title="Limitation of Liability">
-            Sharable is provided "as is" without warranties of any kind. We are
+            SendVia is provided "as is" without warranties of any kind. We are
             not liable for any loss of data, failed transfers, or damages arising
             from the use of the service.
           </TermBlock>

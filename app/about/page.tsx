@@ -17,7 +17,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-4xl px-6 text-center space-y-6">
 
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
-            About Sharable
+            About SendVia
           </h1>
 
           <p className="text-gray-600 dark:text-gray-300 text-lg">
@@ -35,7 +35,7 @@ export default function AboutPage() {
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">Our Mission</h2>
             <p className="text-gray-600 dark:text-gray-300">
-              We built Sharable to remove friction from file sharing. 
+              We built SendVia to remove friction from file sharing. 
               No signups, no storage limits, no waiting for uploads.
               Your files go directly from one device to another using secure WebRTC connections.
             </p>
