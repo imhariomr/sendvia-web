@@ -66,7 +66,7 @@ export default function SharingPage() {
   const { setUploadingFiles } = UseUploadingFiles();
 
   const peerRef = useRef<any>(null);
-  const lastPongRef = useRef<any>(Date.now());
+  const lastPongRef = useRef<any>(null);
   const isInitiatorRef = useRef(false);
   const manualDisconnectRef = useRef(false);
   const connectedRef = useRef(false);
@@ -292,8 +292,15 @@ export default function SharingPage() {
     return () => { socket.off("signal", handleSignal); socket.off("connection-established"); };
   }, [socket, enqueueIncomingData]);
 
-  useEffect(() => { connectedRef.current = connected; }, [connected]);
+  useEffect(() => { 
+    connectedRef.current = connected; 
+    lastPongRef.current = Date.now()
+  }, [connected]);
+
   useEffect(() => {
+    if(!lastPongRef.current){
+      return;
+    }
     const interval = setInterval(() => {
       if (Date.now() - lastPongRef.current > 12000) {
         toast.info("Connection lost");
