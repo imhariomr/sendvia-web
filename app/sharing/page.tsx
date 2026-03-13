@@ -249,7 +249,7 @@ export default function SharingPage() {
         peerRef.current.signal(data);
         socket.emit("connection-established", { toPeerId: fromPeerId });
         if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
-        toast.success("Connected Successfully 🎉");
+        toast.success("Connected Successfully");
         setConnected(true);
         setConnecting(false);
         setInterval(() => {

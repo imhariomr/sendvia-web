@@ -10,6 +10,27 @@ export default function Attachements({downloadAttachments,receiveProgress}:any) 
         <div className={`rounded-2xl border p-8 shadow-md space-y-6 border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900`}>
             <h3 className="text-xl font-semibold">
                 Received Files
+                {
+                    (progess !== 100 && progess !== 0) &&
+                    <p className="flex lg:hidden items-center gap-1 text-[11px] text-gray-400 dark:text-slate-500">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-3 h-3 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M10.29 3.86l-7.1 12.29A2 2 0 005 19h14a2 2 0 001.81-2.85l-7.1-12.29a2 2 0 00-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+
+                        Keep this tab open while the transfer is in progress.
+                    </p>
+                }
             </h3>
             {
                 uploadingFiles.length === 0 && (<label
