@@ -294,16 +294,15 @@ export default function SharingPage() {
 
   useEffect(() => { connectedRef.current = connected; }, [connected]);
   useEffect(() => {
-    if (!connected) return;
-
     const interval = setInterval(() => {
-      if (peerRef.current?.connected) {
-        peerRef.current.send(JSON.stringify({ type: "ping" }));
+      if (Date.now() - lastPongRef.current > 12000) {
+        toast.info("Connection lost");
+        resetPeer();
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [connected]);
+  }, []);
 
   function signaling() {
     clearReceiveState();
