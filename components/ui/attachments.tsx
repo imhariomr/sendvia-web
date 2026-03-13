@@ -56,7 +56,7 @@ export default function Attachements({downloadAttachments,receiveProgress}:any) 
             )}
 
             <div className="flex justify-end">
-                <ShowTooltipInContent mainContent={(progess!== 100 && progess!== 0) ? 'Recieving Files' : 'Download Files'} toolTipContent={(uploadingFiles.length === 0 && progess === 0) ? 'No Files for download' : (progess!== 100 && uploadingFiles.length !== 0 ) ? 'Hang tight! Receiving your files...' : 'Click to Download'}
+                <ShowTooltipInContent mainContent={(progess!== 100 && progess!== 0) ? 'Recieving Files' : 'Save Received Files'} toolTipContent={(uploadingFiles.length === 0 && progess === 0) ? 'No Files for download' : (progess!== 100 && uploadingFiles.length !== 0 ) ? 'Hang tight! Receiving your files...' : 'Click to Download'}
                 className={'w-full rounded-xl py-3 text-center font-medium transition bg-slate-900 text-white dark:bg-white dark:text-black'}
                 useButton={false} disabled={uploadingFiles.length === 0 || progess!== 100} onClick={downloadAttachments} receiveProgress={receiveProgress} entity='attachments'/>
             </div>

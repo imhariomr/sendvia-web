@@ -23,8 +23,8 @@ function Hero() {
           </h1>
 
           <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg max-w-md">
-            Send files directly. No uploads. No waiting. Just fast, secure
-            peer-to-peer transfer in seconds.
+            Send files directly. No size limit. No uploads. No waiting. Just fast, secure
+            device-to-device transfer in seconds.
           </p>
 
           <button
@@ -106,7 +106,7 @@ function Features() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <FeatureItem title="Free to use" description="Share files without limits or subscriptions." />
           <FeatureItem title="We don't store your data" description="Files transfer directly between devices only." />
-          <FeatureItem title="Fast and reliable" description="Peer-to-peer transfer for maximum speed." />
+          <FeatureItem title="No size limits" description="Share huge files, folders, and videos directly between devices with no size limits." />
           <FeatureItem title="Simple and easy" description="Open, connect, and send. Nothing complicated." />
         </div>
       </div>
