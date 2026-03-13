@@ -300,7 +300,7 @@ export default function SharingPage() {
   }, [connected]);
 
   useEffect(() => {
-    if(!lastPongRef.current && !connected){
+    if(!lastPongRef.current || !connected){
       return;
     }
     const interval = setInterval(() => {
