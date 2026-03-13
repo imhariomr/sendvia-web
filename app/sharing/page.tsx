@@ -66,6 +66,7 @@ export default function SharingPage() {
   const { setUploadingFiles } = UseUploadingFiles();
 
   const peerRef = useRef<any>(null);
+  const lastPongRef = useRef<any>(Date.now());
   const isInitiatorRef = useRef(false);
   const manualDisconnectRef = useRef(false);
   const connectedRef = useRef(false);
@@ -122,6 +123,16 @@ export default function SharingPage() {
       if (raw[0] === 0x7b) {
         try { controlMsg = JSON.parse(new TextDecoder().decode(raw)); } catch { }
       }
+    }
+
+    if (controlMsg?.type === "ping") {
+      peerRef.current?.send(JSON.stringify({ type: "pong" }));
+      return;
+    }
+
+    if (controlMsg?.type === "pong") {
+      lastPongRef.current = Date.now();
+      return;
     }
 
     if (controlMsg?.type === "batch-meta") {
@@ -187,7 +198,7 @@ export default function SharingPage() {
   const enqueueIncomingData = useCallback((rawData: unknown) => {
     receiveQueueRef.current = receiveQueueRef.current
       .then(() => handleIncomingData(rawData))
-      .catch((err) => {
+      .catch((err:any) => {
         console.error(err);
         toast.error("Failed to process incoming data.");
       });
@@ -240,6 +251,11 @@ export default function SharingPage() {
         toast.success("Connected Successfully 🎉");
         setConnected(true);
         setConnecting(false);
+        setInterval(() => {
+          if (peerRef.current?.connected) {
+            peerRef.current.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 5000);
         return;
       }
       if (!peerRef.current) {
@@ -258,6 +274,11 @@ export default function SharingPage() {
           toast.info("Device Disconnected");
           resetPeer();
         });
+        setInterval(() => {
+          if (peerRef.current?.connected) {
+            peerRef.current.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 5000);
       }
     };
 
@@ -272,6 +293,17 @@ export default function SharingPage() {
   }, [socket, enqueueIncomingData]);
 
   useEffect(() => { connectedRef.current = connected; }, [connected]);
+  useEffect(() => {
+    if (!connected) return;
+
+    const interval = setInterval(() => {
+      if (peerRef.current?.connected) {
+        peerRef.current.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [connected]);
 
   function signaling() {
     clearReceiveState();
