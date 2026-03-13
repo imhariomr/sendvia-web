@@ -12,10 +12,10 @@ export default function Attachements({downloadAttachments,receiveProgress}:any) 
                 Received Files
                 {
                     (progess !== 100 && progess !== 0) &&
-                    <p className="flex lg:hidden items-center gap-1 text-[11px] text-gray-400 dark:text-slate-500">
+                    <p className="flex lg:hidden mt-1 items-center gap-1 text-[11px] text-gray-400 dark:text-slate-500">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="w-3 h-3 shrink-0"
+                            className="w-4 h-4 shrink-0"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
