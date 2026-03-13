@@ -294,7 +294,9 @@ export default function SharingPage() {
 
   useEffect(() => { 
     connectedRef.current = connected; 
-    lastPongRef.current = Date.now()
+    if(connected){
+      lastPongRef.current = Date.now()
+    }
   }, [connected]);
 
   useEffect(() => {
