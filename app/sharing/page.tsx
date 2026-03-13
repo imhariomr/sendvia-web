@@ -221,6 +221,9 @@ export default function SharingPage() {
     setConnecting(false);
     setIsConnectionEstablishedAtReceiver(false);
     clearReceiveState();
+    setIsSharing(false);
+    setIsShared(false); 
+    setProgress(0);
     isInitiatorRef.current = false;
     if (peerRef.current) { try { peerRef.current.destroy(); } catch { } peerRef.current = null; }
   }
