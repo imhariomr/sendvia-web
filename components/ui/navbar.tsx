@@ -17,7 +17,7 @@ export default function Navbar({page}:any) {
 
         <div className="flex items-center gap-6">
           <nav className="hidden sm:flex items-center gap-8 text-sm text-gray-600 dark:text-gray-300">
-            <Link href={page === 'main' ? "#features" : "/"} className="hover:text-slate-900 dark:hover:text-white transition">
+            <Link href={page === 'main' ? "features" : "/"} className="hover:text-slate-900 dark:hover:text-white transition">
               Features
             </Link>
             <Link href="/about" className="hover:text-slate-900 dark:hover:text-white transition">
