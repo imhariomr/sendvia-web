@@ -235,6 +235,7 @@ export default function SharingPage() {
     setIsSharing(false);
     setIsShared(false); 
     setProgress(0);
+    lastPongRef.current = false;
     isInitiatorRef.current = false;
     if (peerRef.current) { try { peerRef.current.destroy(); } catch { } peerRef.current = null; }
   }
