@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://sendvia.site
+
+# Sitemaps
+Sitemap: https://sendvia.site/sitemap.xml
