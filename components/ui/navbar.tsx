@@ -23,6 +23,9 @@ export default function Navbar({page}:any) {
             <Link href="/about" className="hover:text-slate-900 dark:hover:text-white transition">
               About
             </Link>
+            <Link href="/how-to-send-files-online" className="hover:text-slate-900 dark:hover:text-white transition">
+              How it works 
+            </Link>
             {
               page !== 'sharing' && (<Link href='/sharing' className="hover:text-slate-900 dark:hover:text-white transition">
               Connect
