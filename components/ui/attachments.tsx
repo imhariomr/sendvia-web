@@ -1,17 +1,36 @@
 'use client'
 import { UseUploadingFiles } from "@/app/context/uploading-file-context";
-import { useRef, useState } from "react";
 import { ShowTooltipInContent } from "./tooltip-content";
 
-export default function Attachements({downloadAttachments,receiveProgress}:any) {
-    const { uploadingFiles, setUploadingFiles } = UseUploadingFiles();
-    let progess = Number(receiveProgress) ?? 0;
+export default function Attachements({ downloadAttachments, receiveProgress, isReceiveFinalizing }: any) {
+    const { uploadingFiles } = UseUploadingFiles();
+    const progress = Number(receiveProgress) ?? 0;
+
+    // Files are truly ready only when progress is 100 AND finalization is complete
+    const filesReady = progress === 100 && !isReceiveFinalizing;
+    const isReceiving = progress !== 0 && progress !== 100;
+    const isFinalizing = progress === 100 && isReceiveFinalizing;
+
+    const buttonLabel = isReceiving
+        ? 'Receiving Files…'
+        : isFinalizing
+            ? 'Preparing Files…'
+            : 'Save Received Files';
+
+    const tooltipLabel = (uploadingFiles.length === 0 && progress === 0)
+        ? 'No files for download'
+        : isReceiving
+            ? 'Hang tight! Receiving your files…'
+            : isFinalizing
+                ? 'Almost there! Finalizing your files…'
+                : 'Click to Download';
+
     return (
-        <div className={`rounded-2xl border p-8 shadow-md space-y-6 border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900`}>
+        <div className="rounded-2xl border p-8 shadow-md space-y-6 border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             <h3 className="text-xl font-semibold">
                 Received Files
-                {
-                    (progess !== 100 && progess !== 0) &&
+                {/* Show "keep tab open" warning during receiving AND finalizing */}
+                {(isReceiving || isFinalizing) && (
                     <p className="flex lg:hidden mt-1 items-center gap-1 text-[11px] text-gray-400 dark:text-slate-500">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -27,21 +46,36 @@ export default function Attachements({downloadAttachments,receiveProgress}:any) 
                             <line x1="12" y1="9" x2="12" y2="13" />
                             <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
-
                         Keep this tab open while the transfer is in progress.
                     </p>
-                }
+                )}
             </h3>
-            {
-                uploadingFiles.length === 0 && (<label
-                    className="flex items-center justify-center h-48 border-2 border-dashed rounded-xl cursor-pointer
-                border-gray-300 dark:border-slate-700 hover:border-slate-400
-                transition text-gray-500">
-                    <div className="font-medium">No File Recieved Yet</div>
-                </label>)
-            }
 
-            {uploadingFiles.length > 0 && (
+            {/* Progress bar — visible during receiving, shows "Preparing…" pulse during finalization */}
+            {(isReceiving || isFinalizing) && (
+                <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400">
+                        <span>{isFinalizing ? 'Preparing file…' : 'Receiving…'}</span>
+                        <span>{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
+                        <div
+                            className={`h-2 rounded-full transition-all duration-300 ${isFinalizing ? 'animate-pulse bg-yellow-400' : 'bg-slate-900 dark:bg-white'}`}
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {uploadingFiles.length === 0 ? (
+                <label className="flex items-center justify-center h-48 border-2 border-dashed rounded-xl
+                    border-gray-300 dark:border-slate-700 hover:border-slate-400 transition text-gray-500">
+                    <div className="font-medium">
+                        {/* Context-aware empty state message */}
+                        {isFinalizing ? 'Finalizing received files…' : 'No File Received Yet'}
+                    </div>
+                </label>
+            ) : (
                 <div className="max-h-44 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 p-3 space-y-2 text-sm">
                     {uploadingFiles.map((file: any, i: number) => (
                         <div
@@ -56,9 +90,16 @@ export default function Attachements({downloadAttachments,receiveProgress}:any) 
             )}
 
             <div className="flex justify-end">
-                <ShowTooltipInContent mainContent={(progess!== 100 && progess!== 0) ? 'Recieving Files' : 'Save Received Files'} toolTipContent={(uploadingFiles.length === 0 && progess === 0) ? 'No Files for download' : (progess!== 100 && uploadingFiles.length !== 0 ) ? 'Hang tight! Receiving your files...' : 'Click to Download'}
-                className={'w-full rounded-xl py-3 text-center font-medium transition bg-slate-900 text-white dark:bg-white dark:text-black'}
-                useButton={false} disabled={uploadingFiles.length === 0 || progess!== 100} onClick={downloadAttachments} receiveProgress={receiveProgress} entity='attachments'/>
+                <ShowTooltipInContent
+                    mainContent={buttonLabel}
+                    toolTipContent={tooltipLabel}
+                    className="w-full rounded-xl py-3 text-center font-medium transition bg-slate-900 text-white dark:bg-white dark:text-black"
+                    useButton={false}
+                    disabled={!filesReady || uploadingFiles.length === 0}
+                    onClick={downloadAttachments}
+                    receiveProgress={receiveProgress}
+                    entity='attachments'
+                />
             </div>
         </div>
     );
