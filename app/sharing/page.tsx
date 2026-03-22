@@ -11,9 +11,9 @@ import Attachements from "@/components/ui/attachments"
 import { UseUploadingFiles } from "../context/uploading-file-context"
 import { toast } from "sonner"
 
-const CHUNK_SIZE = 256 * 1024;       // 256KB
-const MAX_BUFFER_BYTES = 4 * 1024 * 1024; // 4MB
-const RESUME_BUFFER_BYTES = 1 * 1024 * 1024; // 1MB
+const CHUNK_SIZE = 256 * 1024;
+const MAX_BUFFER_BYTES = 4 * 1024 * 1024;
+const RESUME_BUFFER_BYTES = 1 * 1024 * 1024;
 const CONNECT_TIMEOUT_MS = 20_000;
 
 interface FileMeta {
@@ -61,6 +61,8 @@ export default function SharingPage() {
   const [isCopiedToClipboard, setIsCopiedToClipboard] = useState(false);
   const [progress, setProgress] = useState(0);
   const [receiveProgress, setReceiveProgress] = useState(0);
+  // NEW: tracks whether we're in the finalization phase (writing/closing OPFS, creating blob URL)
+  const [isReceiveFinalizing, setIsReceiveFinalizing] = useState(false);
 
   const socket = useSocket();
   const { setUploadingFiles } = UseUploadingFiles();
@@ -84,6 +86,8 @@ export default function SharingPage() {
   } | null>(null);
   const totalAllBytesRef = useRef(0);
   const receivedAllBytesRef = useRef(0);
+  // NEW: tracks total files expected so we know when all are finalized
+  const expectedFileCountRef = useRef(0);
 
   async function openOPFSWriter(fileName: string): Promise<FileSystemWritableFileStream | null> {
     try {
@@ -139,9 +143,13 @@ export default function SharingPage() {
       totalAllBytesRef.current = controlMsg.totalBytes;
       receivedAllBytesRef.current = 0;
       receivedFilesRef.current = [];
+      // Store expected file count so we know when all are done
+      expectedFileCountRef.current = controlMsg.fileCount;
       setReceiveProgress(0);
+      setIsReceiveFinalizing(false);
       return;
     }
+
     if (controlMsg?.type === "meta") {
       const receiveState = { meta: controlMsg, writableStream: null as FileSystemWritableFileStream | null, blobParts: [] as Uint8Array[], receivedBytes: 0, checksum: 1 };
       currentReceiveRef.current = receiveState;
@@ -156,6 +164,7 @@ export default function SharingPage() {
       });
       return;
     }
+
     if (controlMsg?.type === "end" && currentReceiveRef.current) {
       const cur = currentReceiveRef.current;
       if (controlMsg.index !== cur.meta.index || controlMsg.checksum !== cur.checksum) {
@@ -163,6 +172,10 @@ export default function SharingPage() {
         currentReceiveRef.current = null;
         return;
       }
+
+      // ✅ Mark as finalizing — this is the async gap where the file isn't ready yet
+      setIsReceiveFinalizing(true);
+
       let url: string | undefined;
       if (cur.writableStream) {
         try { await cur.writableStream.close(); url = (await finalizeOPFS(cur.meta.name)) ?? undefined; } catch { }
@@ -171,9 +184,22 @@ export default function SharingPage() {
         const blob = new Blob(cur.blobParts as BlobPart[], { type: cur.meta.mimeType });
         url = URL.createObjectURL(blob);
       }
-      receivedFilesRef.current.push({ name: cur.meta.name, mimeType: cur.meta.mimeType, size: cur.meta.size, url });
-      setUploadingFiles([...receivedFilesRef.current]);
+
+      const finishedFile: ReceivedFile = { name: cur.meta.name, mimeType: cur.meta.mimeType, size: cur.meta.size, url };
+      receivedFilesRef.current.push(finishedFile);
       currentReceiveRef.current = null;
+
+      const allDone = receivedFilesRef.current.length >= expectedFileCountRef.current;
+
+      // ✅ Only update the UI (and enable download) once ALL files in the batch are finalized
+      if (allDone) {
+        setUploadingFiles([...receivedFilesRef.current]);
+        setIsReceiveFinalizing(false);
+        // ✅ Snap progress to exactly 100% only after files are truly ready
+        setReceiveProgress(100);
+        toast.success("Files received and ready to download! 🎉");
+      }
+
       return;
     }
 
@@ -191,14 +217,16 @@ export default function SharingPage() {
     cur.receivedBytes += raw.byteLength;
     receivedAllBytesRef.current += raw.byteLength;
     if (totalAllBytesRef.current > 0) {
-      setReceiveProgress(Math.floor((receivedAllBytesRef.current / totalAllBytesRef.current) * 100));
+      // Cap at 99% while finalizing — the last 1% completes after OPFS/blob URL is ready
+      const rawPct = Math.floor((receivedAllBytesRef.current / totalAllBytesRef.current) * 100);
+      setReceiveProgress(Math.min(rawPct, 99));
     }
   }, [setUploadingFiles]);
 
   const enqueueIncomingData = useCallback((rawData: unknown) => {
     receiveQueueRef.current = receiveQueueRef.current
       .then(() => handleIncomingData(rawData))
-      .catch((err:any) => {
+      .catch((err: any) => {
         console.error(err);
         toast.error("Failed to process incoming data.");
       });
@@ -223,7 +251,9 @@ export default function SharingPage() {
     currentReceiveRef.current = null;
     totalAllBytesRef.current = 0;
     receivedAllBytesRef.current = 0;
+    expectedFileCountRef.current = 0;
     setReceiveProgress(0);
+    setIsReceiveFinalizing(false);
     setUploadingFiles([]);
   }
 
@@ -233,7 +263,7 @@ export default function SharingPage() {
     setIsConnectionEstablishedAtReceiver(false);
     clearReceiveState();
     setIsSharing(false);
-    setIsShared(false); 
+    setIsShared(false);
     setProgress(0);
     lastPongRef.current = false;
     isInitiatorRef.current = false;
@@ -293,15 +323,15 @@ export default function SharingPage() {
     return () => { socket.off("signal", handleSignal); socket.off("connection-established"); };
   }, [socket, enqueueIncomingData]);
 
-  useEffect(() => { 
-    connectedRef.current = connected; 
-    if(connected){
+  useEffect(() => {
+    connectedRef.current = connected;
+    if (connected) {
       lastPongRef.current = Date.now()
     }
   }, [connected]);
 
   useEffect(() => {
-    if(!lastPongRef.current || !connected){
+    if (!lastPongRef.current || !connected) {
       return;
     }
     const interval = setInterval(() => {
@@ -327,7 +357,6 @@ export default function SharingPage() {
       manualDisconnectRef.current = false;
       resetPeer();
     });
-
     peerRef.current.on("error", (err: any) => {
       toast.info("Device Disconnected");
       resetPeer();
@@ -366,7 +395,7 @@ export default function SharingPage() {
         while (offset < file.size) {
           if (sendAbortRef.current) break;
           if (channel.bufferedAmount > MAX_BUFFER_BYTES) await waitForDrain();
-          const slice = file.slice(offset, offset + CHUNK_SIZE);  // ← only 64KB in RAM at once
+          const slice = file.slice(offset, offset + CHUNK_SIZE);
           const buf = await slice.arrayBuffer();
           const u8 = new Uint8Array(buf);
           checksum = adler32(u8, checksum);
@@ -410,13 +439,12 @@ export default function SharingPage() {
       resetPeer();
       return;
     }
-
     try {
       if (peer.connected) {
         peer.send(JSON.stringify({ type: "disconnect" }));
       }
     } catch (e) {
-      console.error('e',e);
+      console.error('e', e);
     }
     resetPeer();
   }
@@ -473,7 +501,12 @@ export default function SharingPage() {
           {connected && !isConnectionEstablishedAtReceiver ? (
             <FileUpload onFiles={(files: any) => sendFiles(files)} isShared={isShared} isSharing={isSharing} progress={progress} />
           ) : connected && isConnectionEstablishedAtReceiver ? (
-            <Attachements downloadAttachments={download} receiveProgress={receiveProgress} />
+            // Pass isReceiveFinalizing so Attachements can show "Preparing file…" and keep button disabled
+            <Attachements
+              downloadAttachments={download}
+              receiveProgress={receiveProgress}
+              isReceiveFinalizing={isReceiveFinalizing}
+            />
           ) : (
             <DeviceOrbit />
           )}
