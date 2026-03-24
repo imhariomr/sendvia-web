@@ -72,6 +72,8 @@ export default function SharingPage() {
   const isInitiatorRef = useRef(false);
   const manualDisconnectRef = useRef(false);
   const connectedRef = useRef(false);
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const wakeLockRef = useRef<any>(null);
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendAbortRef = useRef(false);
   const receiveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -111,6 +113,46 @@ export default function SharingPage() {
     }
   }
 
+  async function requestWakeLock() {
+    try {
+      if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+      if (!("wakeLock" in navigator)) return;
+      wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+      wakeLockRef.current?.addEventListener?.("release", () => {
+        wakeLockRef.current = null;
+      });
+    } catch {
+      wakeLockRef.current = null;
+    }
+  }
+
+  async function releaseWakeLock() {
+    try {
+      await wakeLockRef.current?.release?.();
+    } catch {
+    } finally {
+      wakeLockRef.current = null;
+    }
+  }
+
+  function startHeartbeat() {
+    if (pingIntervalRef.current) return;
+    pingIntervalRef.current = setInterval(() => {
+      if (peerRef.current?.connected) {
+        try {
+          peerRef.current.send(JSON.stringify({ type: "ping" }));
+        } catch {
+        }
+      }
+    }, 5000);
+  }
+
+  function stopHeartbeat() {
+    if (!pingIntervalRef.current) return;
+    clearInterval(pingIntervalRef.current);
+    pingIntervalRef.current = null;
+  }
+
   const handleIncomingData = useCallback(async (rawData: unknown) => {
     let raw: Uint8Array | null = null;
     let controlMsg: BatchMeta | FileMeta | EndMsg | null | any = null;
@@ -147,21 +189,14 @@ export default function SharingPage() {
       expectedFileCountRef.current = controlMsg.fileCount;
       setReceiveProgress(0);
       setIsReceiveFinalizing(false);
+      void requestWakeLock();
       return;
     }
 
     if (controlMsg?.type === "meta") {
-      const receiveState = { meta: controlMsg, writableStream: null as FileSystemWritableFileStream | null, blobParts: [] as Uint8Array[], receivedBytes: 0, checksum: 1 };
+      const writer = await openOPFSWriter(controlMsg.name);
+      const receiveState = { meta: controlMsg, writableStream: writer, blobParts: [] as Uint8Array[], receivedBytes: 0, checksum: 1 };
       currentReceiveRef.current = receiveState;
-      void openOPFSWriter(controlMsg.name).then((writer) => {
-        if (!writer) return;
-        const active = currentReceiveRef.current === receiveState;
-        if (active && receiveState.blobParts.length === 0) {
-          receiveState.writableStream = writer;
-          return;
-        }
-        void writer.close().catch(() => { });
-      });
       return;
     }
 
@@ -197,6 +232,7 @@ export default function SharingPage() {
         setIsReceiveFinalizing(false);
         // ✅ Snap progress to exactly 100% only after files are truly ready
         setReceiveProgress(100);
+        void releaseWakeLock();
         toast.success("Files received and ready to download! 🎉");
       }
 
@@ -248,6 +284,7 @@ export default function SharingPage() {
 
   function clearReceiveState() {
     receivedFilesRef.current = [];
+    const current = currentReceiveRef.current;
     currentReceiveRef.current = null;
     totalAllBytesRef.current = 0;
     receivedAllBytesRef.current = 0;
@@ -255,9 +292,14 @@ export default function SharingPage() {
     setReceiveProgress(0);
     setIsReceiveFinalizing(false);
     setUploadingFiles([]);
+    if (current?.writableStream) {
+      void current.writableStream.abort().catch(() => { });
+    }
+    void releaseWakeLock();
   }
 
   function resetPeer() {
+    stopHeartbeat();
     setConnected(false);
     setConnecting(false);
     setIsConnectionEstablishedAtReceiver(false);
@@ -267,6 +309,10 @@ export default function SharingPage() {
     setProgress(0);
     lastPongRef.current = false;
     isInitiatorRef.current = false;
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
     if (peerRef.current) { try { peerRef.current.destroy(); } catch { } peerRef.current = null; }
   }
 
@@ -282,11 +328,7 @@ export default function SharingPage() {
         toast.success("Connected Successfully");
         setConnected(true);
         setConnecting(false);
-        setInterval(() => {
-          if (peerRef.current?.connected) {
-            peerRef.current.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 5000);
+        startHeartbeat();
         return;
       }
       if (!peerRef.current) {
@@ -305,11 +347,7 @@ export default function SharingPage() {
           toast.info("Device Disconnected");
           resetPeer();
         });
-        setInterval(() => {
-          if (peerRef.current?.connected) {
-            peerRef.current.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 5000);
+        startHeartbeat();
       }
     };
 
@@ -320,7 +358,11 @@ export default function SharingPage() {
       setTargetId(fromPeerId);
       setConnected(true);
     });
-    return () => { socket.off("signal", handleSignal); socket.off("connection-established"); };
+    return () => {
+      socket.off("signal", handleSignal);
+      socket.off("connection-established");
+      stopHeartbeat();
+    };
   }, [socket, enqueueIncomingData]);
 
   useEffect(() => {
@@ -342,12 +384,37 @@ export default function SharingPage() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [connected]);
+
+  useEffect(() => {
+    const shouldKeepAwake = connected || isSharing || receiveProgress > 0 || isReceiveFinalizing;
+    if (shouldKeepAwake) {
+      void requestWakeLock();
+      return;
+    }
+    void releaseWakeLock();
+  }, [connected, isSharing, receiveProgress, isReceiveFinalizing]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (connectedRef.current || isSharing || receiveProgress > 0 || isReceiveFinalizing) {
+        void requestWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      void releaseWakeLock();
+    };
+  }, [isSharing, receiveProgress, isReceiveFinalizing]);
 
   function signaling() {
     clearReceiveState();
     setConnecting(true);
     isInitiatorRef.current = true;
+    stopHeartbeat();
     peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig() });
     peerRef.current.on("signal", (offer: any) => socket.emit("signal", { toPeerId: targetId, data: offer }));
     peerRef.current.on("close", () => {
@@ -370,6 +437,7 @@ export default function SharingPage() {
     const peer = peerRef.current;
     if (!peer?.connected) { toast.error("Not connected."); return; }
     setIsSharing(true); setIsShared(false); setProgress(0); sendAbortRef.current = false;
+    void requestWakeLock();
     const channel: RTCDataChannel = peer._channel;
 
     function waitForDrain(): Promise<void> {
@@ -413,6 +481,9 @@ export default function SharingPage() {
       toast.error("Transfer failed. Please try again.");
     } finally {
       setIsSharing(false);
+      if (receiveProgress === 0 && !currentReceiveRef.current) {
+        void releaseWakeLock();
+      }
     }
   }
 
