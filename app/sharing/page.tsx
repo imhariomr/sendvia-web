@@ -216,7 +216,7 @@ export default function SharingPage() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("signal", ({ data }) => {
+    socket.on("signal", ({ data }:any) => {
       if (!peerRef.current) {
         const peer = new Peer({ initiator: false, trickle: false });
         peerRef.current = peer;
