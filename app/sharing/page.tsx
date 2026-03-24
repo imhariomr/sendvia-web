@@ -325,10 +325,6 @@ export default function SharingPage() {
         peerRef.current.signal(data);
         socket.emit("connection-established", { toPeerId: fromPeerId });
         if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
-        toast.success("Connected Successfully");
-        setConnected(true);
-        setConnecting(false);
-        startHeartbeat();
         return;
       }
       if (!peerRef.current) {
@@ -336,6 +332,10 @@ export default function SharingPage() {
         peerRef.current.signal(data);
         peerRef.current.on("signal", (answer: any) => socket.emit("signal", { toPeerId: fromPeerId, data: answer }));
         peerRef.current.on("data", enqueueIncomingData);
+        peerRef.current.on("connect", () => {
+          setConnected(true);
+          startHeartbeat();
+        });
         peerRef.current.on("close", () => {
           if (manualDisconnectRef.current) {
             toast.info("Device Disconnected");
@@ -347,7 +347,6 @@ export default function SharingPage() {
           toast.info("Device Disconnected");
           resetPeer();
         });
-        startHeartbeat();
       }
     };
 
@@ -356,7 +355,6 @@ export default function SharingPage() {
       clearReceiveState();
       setIsConnectionEstablishedAtReceiver(true);
       setTargetId(fromPeerId);
-      setConnected(true);
     });
     return () => {
       socket.off("signal", handleSignal);
@@ -417,6 +415,17 @@ export default function SharingPage() {
     stopHeartbeat();
     peerRef.current = new Peer({ initiator: true, trickle: false, config: iceConfig() });
     peerRef.current.on("signal", (offer: any) => socket.emit("signal", { toPeerId: targetId, data: offer }));
+    peerRef.current.on("data", enqueueIncomingData);
+    peerRef.current.on("connect", () => {
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current);
+        connectTimeoutRef.current = null;
+      }
+      toast.success("Connected Successfully");
+      setConnected(true);
+      setConnecting(false);
+      startHeartbeat();
+    });
     peerRef.current.on("close", () => {
       if (manualDisconnectRef.current) {
         toast.info("Device Disconnected");
