@@ -23,7 +23,7 @@ function Hero() {
           </h1>
 
           <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg max-w-xl leading-8">
-            Sendvia lets you securely share large files instantly between devices
+            MeTube lets you securely share large files instantly between devices
             without cloud uploads or size limits. Fast, encrypted, peer-to-peer
             file transfers directly from your browser.
           </p>
@@ -119,16 +119,16 @@ export default function Page() {
   return (
     <>
     <Script
-        id="sendvia-schema"
+        id="MeTube-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            name: "Sendvia",
+            name: "MeTube",
             applicationCategory: "FileSharingApplication",
             operatingSystem: "Web",
-            url: "https://sendvia.site",
+            url: "https://MeTube.site",
             description:
               "Secure peer-to-peer file sharing platform for transferring large files instantly.",
           }),
@@ -148,7 +148,7 @@ export default function Page() {
           </h2>
 
           <p className="mt-6 text-lg text-gray-600 dark:text-gray-300 leading-8">
-            Sendvia is a modern peer-to-peer file sharing platform that helps
+            MeTube is a modern peer-to-peer file sharing platform that helps
             users transfer files instantly between devices without storing data
             on external servers. Share videos, folders, documents, and large files
             securely with encrypted direct connections.
