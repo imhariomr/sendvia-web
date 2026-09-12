@@ -30,11 +30,11 @@ export default function FAQ() {
             className="rounded-xl border border-gray-200 bg-white px-6 dark:bg-slate-950 dark:border-slate-800"
           >
             <AccordionTrigger className="text-left text-lg font-medium">
-              Is Sendvia free to use?
+              Is Metube free to use?
             </AccordionTrigger>
 
             <AccordionContent className="text-gray-600 dark:text-gray-300 leading-7">
-              Yes, Sendvia is completely free for file sharing between devices.
+              Yes, Metube is completely free for file sharing between devices.
             </AccordionContent>
           </AccordionItem>
 
@@ -43,7 +43,7 @@ export default function FAQ() {
             className="rounded-xl border border-gray-200 bg-white px-6 dark:bg-slate-950 dark:border-slate-800"
           >
             <AccordionTrigger className="text-left text-lg font-medium">
-              Does Sendvia store uploaded files?
+              Does Metube store uploaded files?
             </AccordionTrigger>
 
             <AccordionContent className="text-gray-600 dark:text-gray-300 leading-7">
@@ -61,7 +61,7 @@ export default function FAQ() {
             </AccordionTrigger>
 
             <AccordionContent className="text-gray-600 dark:text-gray-300 leading-7">
-              No, Sendvia supports sharing large files without traditional
+              No, Metube supports sharing large files without traditional
               upload limits.
             </AccordionContent>
           </AccordionItem>

@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://sendvia.site/sitemap.xml",
+    sitemap: "https://Metube.site/sitemap.xml",
   };
 }

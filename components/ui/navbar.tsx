@@ -22,7 +22,7 @@ export default function Navbar({ page }: any) {
             </button>
           <Link href="/">
             <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
-              SendVia
+              Metube
             </span>
           </Link>
 

@@ -14,7 +14,7 @@ export default function HowToSharePage() {
 
           <div className="space-y-3">
             <h1 className="text-3xl sm:text-4xl font-semibold">
-              How to Share Files Online with SendVia
+              How to Share Files Online with Metube
             </h1>
 
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -22,7 +22,7 @@ export default function HowToSharePage() {
             </p>
 
             <p className="text-gray-600 dark:text-gray-300">
-              SendVia allows you to share files instantly using secure
+              Metube allows you to share files instantly using secure
               peer-to-peer technology. Files transfer directly between
               devices without uploading them to any server. Follow the
               simple steps below to start sending files online.
@@ -31,14 +31,14 @@ export default function HowToSharePage() {
 
           <TermBlock title="Step 1 — Start a Sharing Session">
             Click on the <strong>Start Sharing</strong> button or navigate to{" "}
-            <strong>https://sendvia.site/sharing</strong>. This will generate a
+            <strong>https://Metube.site/sharing</strong>. This will generate a
             unique connection code for your device which allows other devices
             to connect securely.
           </TermBlock>
 
-          <TermBlock title="Step 2 — Open SendVia on the Other Device">
+          <TermBlock title="Step 2 — Open Metube on the Other Device">
             On the second device, repeat the same process by opening{" "}
-            <strong>https://sendvia.site/sharing</strong>. A unique code will
+            <strong>https://Metube.site/sharing</strong>. A unique code will
             appear on that device as well. Now both devices will have their own
             connection codes displayed on screen.
           </TermBlock>
@@ -63,7 +63,7 @@ export default function HowToSharePage() {
           </TermBlock>
 
           <TermBlock title="Step 6 — File Transfer Begins">
-            SendVia will start transferring the files directly between the two
+            Metube will start transferring the files directly between the two
             connected devices. Because the transfer is peer-to-peer, it is fast
             and does not require uploading files to the cloud.
           </TermBlock>

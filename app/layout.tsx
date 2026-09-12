@@ -18,15 +18,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sendvia.site"),
+  metadataBase: new URL("https://Metube.site"),
 
   title: {
-    default: "Sendvia | Fast & Secure File Transfer App",
-    template: "%s | Sendvia",
+    default: "Metube | Fast & Secure File Transfer App",
+    template: "%s | Metube",
   },
 
   description:
-    "Sendvia lets you securely share large files instantly. Fast, private, encrypted, and easy file transfer platform for teams and individuals.",
+    "Metube lets you securely share large files instantly. Fast, private, encrypted, and easy file transfer platform for teams and individuals.",
 
   keywords: [
     "file sharing",
@@ -36,18 +36,18 @@ export const metadata: Metadata = {
     "temporary file sharing",
     "fast file transfer",
     "share files online",
-    "Sendvia",
+    "Metube",
   ],
 
   authors: [
     {
-      name: "Sendvia",
-      url: "https://sendvia.site",
+      name: "Metube",
+      url: "https://Metube.site",
     },
   ],
 
-  creator: "Sendvia",
-  publisher: "Sendvia",
+  creator: "Metube",
+  publisher: "Metube",
 
   robots: {
     index: true,
@@ -62,29 +62,29 @@ export const metadata: Metadata = {
   },
 
   alternates: {
-    canonical: "https://sendvia.site",
+    canonical: "https://Metube.site",
   },
 
   openGraph: {
     type: "website",
-    url: "https://sendvia.site",
-    title: "Sendvia | Fast & Secure File Transfer App",
+    url: "https://Metube.site",
+    title: "Metube | Fast & Secure File Transfer App",
     description:
-      "Securely share large files instantly with Sendvia. Fast, encrypted, and simple file transfers.",
-    siteName: "Sendvia",
+      "Securely share large files instantly with Metube. Fast, encrypted, and simple file transfers.",
+    siteName: "Metube",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Sendvia File Sharing Platform",
+        alt: "Metube File Sharing Platform",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Sendvia | Fast & Secure File Transfer App",
+    title: "Metube | Fast & Secure File Transfer App",
     description:
       "Secure file sharing platform for sending large files instantly.",
     images: ["/og-image.png"],
